@@ -75,13 +75,19 @@ func (r *productRepository) Create(product models.Product) (models.Product, erro
 	if err != nil {
 		return models.Product{}, err
 	}
-	product.ID = id
-	return product, nil
+
+	createdProduct, err := r.GetByID(id)
+	if err != nil {
+		return models.Product{}, err
+	}
+	if createdProduct == nil {
+		return models.Product{}, sql.ErrNoRows
+	}
+
+	return *createdProduct, nil
 }
 
 func (r *productRepository) Update(id int, product models.Product) (*models.Product, error) {
-	// First check if exists
-    // Note: In a real app we might combine this with UPDATE RETURNING or separate check
 	res, err := r.db.Exec("UPDATE products SET name=$1, price=$2, stock=$3, category_id=$4 WHERE id=$5",
 		product.Name, product.Price, product.Stock, product.CategoryID, id)
 	if err != nil {
@@ -95,8 +101,8 @@ func (r *productRepository) Update(id int, product models.Product) (*models.Prod
 	if count == 0 {
 		return nil, nil
 	}
-	product.ID = id
-	return &product, nil
+
+	return r.GetByID(id)
 }
 
 func (r *productRepository) Delete(id int) error {
